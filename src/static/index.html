@@ -45,6 +45,71 @@
       <p>&copy; 2023 Mergington High School</p>
     </footer>
 
-    <script src="app.js"></script>
+    <script>
+      // filepath: /workspaces/starting_with_github_copilot/src/static/index.html
+      // Fetch and render activities with participants
+      document.addEventListener("DOMContentLoaded", async () => {
+        const activitiesList = document.getElementById("activities-list");
+        const activitySelect = document.getElementById("activity");
+        const messageDiv = document.getElementById("message");
+
+        // Fetch activities from backend
+        const res = await fetch("/activities");
+        const activities = await res.json();
+
+        // Render activity cards
+        activitiesList.innerHTML = "";
+        Object.entries(activities).forEach(([name, info]) => {
+          const card = document.createElement("div");
+          card.className = "activity-card";
+          card.innerHTML = `
+            <h4>${name}</h4>
+            <p>${info.description}</p>
+            <p><strong>Schedule:</strong> ${info.schedule}</p>
+            <p><strong>Availability:</strong> ${info.max_participants - info.participants.length} spots left</p>
+            <div class="participants-section">
+              <strong>Participants:</strong>
+              <ul class="participants-list">
+                ${info.participants.length === 0 ? '<li class="no-participants">No participants yet</li>' :
+                  info.participants.map(email => `
+                    <li>
+                      <span>${email}</span>
+                      <button class="delete-participant" title="Remove participant" data-activity="${name}" data-email="${email}">🗑️</button>
+                    </li>
+                  `).join('')
+                }
+              </ul>
+            </div>
+          `;
+          activitiesList.appendChild(card);
+
+          // Add to select dropdown
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = name;
+          activitySelect.appendChild(option);
+        });
+
+        // Delete participant event
+        activitiesList.addEventListener("click", async (e) => {
+          if (e.target.classList.contains("delete-participant")) {
+            const activity = e.target.getAttribute("data-activity");
+            const email = e.target.getAttribute("data-email");
+            if (confirm(`Remove ${email} from ${activity}?`)) {
+              try {
+                const res = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, { method: "POST" });
+                if (res.ok) {
+                  e.target.closest("li").remove();
+                } else {
+                  alert("Failed to remove participant.");
+                }
+              } catch {
+                alert("Error removing participant.");
+              }
+            }
+          }
+        });
+      });
+    </script>
   </body>
 </html>
