@@ -64,23 +64,21 @@
           card.className = "activity-card";
           card.innerHTML = `
             <h4>${name}</h4>
-            <p><strong>Description:</strong> ${info.description}</p>
+            <p>${info.description}</p>
             <p><strong>Schedule:</strong> ${info.schedule}</p>
-            <p><strong>Max Participants:</strong> ${info.max_participants}</p>
+            <p><strong>Availability:</strong> ${info.max_participants - info.participants.length} spots left</p>
             <div class="participants-section">
               <strong>Participants:</strong>
-              ${
-                info.participants.length > 0
-                  ? `<ul class="participants-list">${info.participants
-                      .map(
-                        (email) =>
-                          `<li><span class="participant-avatar">${email
-                            .charAt(0)
-                            .toUpperCase()}</span> ${email}</li>`
-                      )
-                      .join("")}</ul>`
-                  : `<span class="no-participants">No participants yet.</span>`
-              }
+              <ul class="participants-list">
+                ${info.participants.length === 0 ? '<li class="no-participants">No participants yet</li>' :
+                  info.participants.map(email => `
+                    <li>
+                      <span>${email}</span>
+                      <button class="delete-participant" title="Remove participant" data-activity="${name}" data-email="${email}">🗑️</button>
+                    </li>
+                  `).join('')
+                }
+              </ul>
             </div>
           `;
           activitiesList.appendChild(card);
@@ -92,7 +90,25 @@
           activitySelect.appendChild(option);
         });
 
-        // ...existing code for signup form...
+        // Delete participant event
+        activitiesList.addEventListener("click", async (e) => {
+          if (e.target.classList.contains("delete-participant")) {
+            const activity = e.target.getAttribute("data-activity");
+            const email = e.target.getAttribute("data-email");
+            if (confirm(`Remove ${email} from ${activity}?`)) {
+              try {
+                const res = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, { method: "POST" });
+                if (res.ok) {
+                  e.target.closest("li").remove();
+                } else {
+                  alert("Failed to remove participant.");
+                }
+              } catch {
+                alert("Error removing participant.");
+              }
+            }
+          }
+        });
       });
     </script>
   </body>

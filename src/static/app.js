@@ -27,6 +27,15 @@ document.addEventListener("DOMContentLoaded", () => {
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
         `;
 
+        activityCard.innerHTML += `
+          <div class="participants-section">
+            <strong>Participants:</strong>
+            <ul class="participants-list">
+              ${renderParticipants(name, details.participants)}
+            </ul>
+          </div>
+        `;
+
         activitiesList.appendChild(activityCard);
 
         // Add option to select dropdown
@@ -39,6 +48,19 @@ document.addEventListener("DOMContentLoaded", () => {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
       console.error("Error fetching activities:", error);
     }
+  }
+
+  // Add delete icon and unregister logic for participants
+  function renderParticipants(activityName, participants) {
+    if (!participants || participants.length === 0) {
+      return '<li class="no-participants">No participants yet</li>';
+    }
+    return participants.map(email => `
+      <li>
+        <span>${email}</span>
+        <button class="delete-participant" title="Remove participant" data-activity="${activityName}" data-email="${email}">🗑️</button>
+      </li>
+    `).join('');
   }
 
   // Handle form submission
@@ -78,6 +100,26 @@ document.addEventListener("DOMContentLoaded", () => {
       messageDiv.className = "error";
       messageDiv.classList.remove("hidden");
       console.error("Error signing up:", error);
+    }
+  });
+
+  // Add event listener for delete
+  activitiesList.addEventListener("click", async (e) => {
+    if (e.target.classList.contains("delete-participant")) {
+      const activity = e.target.getAttribute("data-activity");
+      const email = e.target.getAttribute("data-email");
+      if (confirm(`Remove ${email} from ${activity}?`)) {
+        try {
+          const res = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, { method: "POST" });
+          if (res.ok) {
+            e.target.closest("li").remove();
+          } else {
+            alert("Failed to remove participant.");
+          }
+        } catch {
+          alert("Error removing participant.");
+        }
+      }
     }
   });
 
